@@ -206,6 +206,8 @@ decodeWire = runGet getFields
 
 -- | Type describing possible errors that can be encountered while parsing.
 data ParseError =
+                UnknownError
+                |
                 -- | A 'WireTypeError' occurs when the type of the data in the protobuf
                 -- binary format does not match the type encountered by the parser. This can
                 -- indicate that the type of a field has changed or is incorrect.
@@ -245,6 +247,13 @@ instance Applicative (Parser input) where
     pure = Parser . const . pure
     Parser p1 <*> Parser p2 =
         Parser $ \input -> p1 input <*> p2 input
+
+instance Alternative (Parser input) where
+    empty = Parser . const $ Left UnknownError
+    Parser p1 <|> Parser p2 =
+        Parser $ \input -> case p1 input of
+          Left _ -> p2 input
+          right -> right
 
 instance Monad (Parser input) where
     -- return = pure
