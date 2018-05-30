@@ -44,6 +44,7 @@ module Proto3.Wire.Decode
     , parse
       -- * Primitives
     , bool
+    , int
     , int32
     , int64
     , uint32
@@ -356,6 +357,10 @@ bytes = Parser $
 -- | Parse a Boolean value.
 bool :: Parser RawPrimitive Bool
 bool = fmap (Safe.toEnumDef False) parseVarInt
+
+-- | Parse a primitive with the @int@ wire type.
+int :: Parser RawPrimitive Int
+int = parseVarInt
 
 -- | Parse a primitive with the @int32@ wire type.
 int32 :: Parser RawPrimitive Int32
