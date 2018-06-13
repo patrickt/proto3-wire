@@ -40,6 +40,7 @@ module Proto3.Wire.Decode
     , RawField
     , RawMessage
     , ParseError(..)
+    , enumError
     , foldFields
     , parse
       -- * Primitives
@@ -77,6 +78,7 @@ module Proto3.Wire.Decode
 import           Control.Applicative
 import           Control.Exception       ( Exception )
 import           Control.Monad           ( unless, msum, foldM )
+import qualified Control.Monad.Fail      as Fail
 import           Data.Bits
 import qualified Data.ByteString         as B
 import qualified Data.ByteString.Lazy    as BL
@@ -219,6 +221,10 @@ data ParseError =
                 -- embedded message.
                 EmbeddedError Text
                               (Maybe ParseError)
+                |
+                EnumError Text Int
+                |
+                OtherError Text
     deriving (Show, Eq, Ord)
 
 -- | This library does not use this instance, but it is provided for convenience,
@@ -249,6 +255,13 @@ instance Applicative (Parser input) where
 instance Monad (Parser input) where
     -- return = pure
     Parser p >>= f = Parser $ \input -> p input >>= (`runParser` input) . f
+    fail = Fail.fail
+
+enumError :: String -> Int -> Parser input a
+enumError t i = Parser (\_ -> (Left (EnumError ("got bad value while decoding " <> pack t) i)))
+
+instance Fail.MonadFail (Parser input) where
+  fail s = Parser (\_ -> Left (OtherError (pack s)))
 
 -- | Raw data corresponding to a single encoded key/value pair.
 type RawPrimitive = ParsedField
