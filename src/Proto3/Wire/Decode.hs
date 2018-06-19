@@ -45,6 +45,7 @@ module Proto3.Wire.Decode
     , parse
       -- * Primitives
     , bool
+    , int
     , int32
     , int64
     , uint32
@@ -208,6 +209,8 @@ decodeWire = runGet getFields
 
 -- | Type describing possible errors that can be encountered while parsing.
 data ParseError =
+                UnknownError
+                |
                 -- | A 'WireTypeError' occurs when the type of the data in the protobuf
                 -- binary format does not match the type encountered by the parser. This can
                 -- indicate that the type of a field has changed or is incorrect.
@@ -251,6 +254,13 @@ instance Applicative (Parser input) where
     pure = Parser . const . pure
     Parser p1 <*> Parser p2 =
         Parser $ \input -> p1 input <*> p2 input
+
+instance Alternative (Parser input) where
+    empty = Parser . const $ Left UnknownError
+    Parser p1 <|> Parser p2 =
+        Parser $ \input -> case p1 input of
+          Left _ -> p2 input
+          right -> right
 
 instance Monad (Parser input) where
     -- return = pure
@@ -360,6 +370,10 @@ bytes = Parser $
 -- | Parse a Boolean value.
 bool :: Parser RawPrimitive Bool
 bool = fmap (Safe.toEnumDef False) parseVarInt
+
+-- | Parse a primitive with the @int@ wire type.
+int :: Parser RawPrimitive Int
+int = parseVarInt
 
 -- | Parse a primitive with the @int32@ wire type.
 int32 :: Parser RawPrimitive Int32

@@ -50,6 +50,7 @@ module Proto3.Wire.Encode
     , unsafeFromLazyByteString
 
       -- * Standard Integers
+    , int
     , int32
     , int64
       -- * Unsigned Integers
@@ -154,6 +155,15 @@ wireType LengthDelimited = 2
 fieldHeader :: FieldNumber -> WireType -> MessageBuilder
 fieldHeader num wt = base128Varint ((getFieldNumber num `shiftL` 3) .|.
                                         fromIntegral (wireType wt))
+
+-- | Encode an integer
+--
+-- For example:
+--
+-- >>> 1 `int` 42
+-- Proto3.Wire.Encode.unsafeFromLazyByteString "\b*"
+int :: FieldNumber -> Int -> MessageBuilder
+int num i = fieldHeader num Varint <> base128Varint (fromIntegral i)
 
 -- | Encode a 32-bit "standard" integer
 --
