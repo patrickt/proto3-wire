@@ -74,6 +74,7 @@ module Proto3.Wire.Decode
     , repeated
     , embedded
     , embedded'
+    , embedded''
     ) where
 
 import           Control.Applicative
@@ -581,3 +582,13 @@ embedded' parser = Parser $
                                                 (Just err))
                 Right result -> return result
         wrong -> throwWireTypeError "embedded" wrong
+
+embedded'' :: Parser RawMessage a -> Parser RawField a
+embedded'' p = Parser $
+    \xs -> if xs == empty
+           then Left (EmbeddedError "Failed to parse embedded message." Nothing)
+           else do
+               innerMaps <- T.mapM embeddedToParsedFields xs
+               let combinedMap = foldl' (M.unionWith (<>)) M.empty innerMaps
+               parsed <- runParser p combinedMap
+               return parsed
